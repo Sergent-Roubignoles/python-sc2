@@ -10,7 +10,7 @@ from sc2.data import Difficulty, Race
 from sc2.main import run_game
 from sc2.player import Bot, Computer
 
-bot = Bot(Race.Terran, CompetitiveBot())
+bot = Bot(Race.Zerg, CompetitiveBot())
 
 # Start game
 if __name__ == "__main__":
@@ -22,4 +22,4 @@ if __name__ == "__main__":
     else:
         # Local game
         print("Starting local game...")
-        run_game(maps.get("Abyssal Reef LE"), [bot, Computer(Race.Protoss, Difficulty.VeryHard)], realtime=True)
+        run_game(maps.get("2000AtmospheresAIE"), [bot, Computer(Race.Protoss, Difficulty.VeryHard)], realtime=False)

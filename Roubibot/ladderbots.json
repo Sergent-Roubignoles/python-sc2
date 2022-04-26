@@ -1,7 +1,7 @@
 {
     "Bots": {
-        "YOUR_BOTS_NAME_HERE": {
-            "Race": "Put Terran Zerg or Protoss here",
+        "Roubibot": {
+            "Race": "Zerg",
             "Type": "Python",
             "RootPath": "./",
             "FileName": "run.py",
