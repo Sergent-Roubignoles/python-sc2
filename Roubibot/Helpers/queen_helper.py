@@ -67,6 +67,7 @@ def is_border_of_creep(bot: BotAI, position: Point2):
                 return True
     return False
 
+
 def get_whole_map(bot: BotAI):
     map_area = bot.game_info.playable_area
     points = [
