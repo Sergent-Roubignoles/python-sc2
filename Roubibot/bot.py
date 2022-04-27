@@ -1,8 +1,7 @@
 import random
 from typing import List
 
-from Helpers import queen_helper
-from Roubibot.Helpers import surrender_logic, scouting
+from Helpers import queen_helper,surrender_logic, scouting
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -102,7 +101,7 @@ class CompetitiveBot(BotAI):
         self.train(UnitTypeId.ZERGLING, int(self.supply_left))
 
         if self.units(UnitTypeId.ZERGLING).amount > 30:
-            target_base = scouting.base_identifier.enemy_3rd[random.randint(0, 1)]
+            target_base = scouting.BaseIdentifier.enemy_3rd[random.randint(0, 1)]
             for ling in self.units(UnitTypeId.ZERGLING).idle:
                 ling.attack(target_base)
                 ling.attack(self.enemy_start_locations[0], queue= True)
@@ -143,7 +142,7 @@ class CompetitiveBot(BotAI):
 
         army = self.units.of_type({UnitTypeId.ZERGLING, UnitTypeId.BANELING})
         if army.amount > 80:
-            target_base = scouting.base_identifier.enemy_3rd[random.randint(0, 1)]
+            target_base = scouting.BaseIdentifier.enemy_3rd[random.randint(0, 1)]
             for unit in army.idle:
                 unit.attack(target_base)
                 unit.attack(self.enemy_start_locations[0], queue= True)

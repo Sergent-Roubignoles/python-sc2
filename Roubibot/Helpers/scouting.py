@@ -1,22 +1,22 @@
 from typing import List
 
-from Roubibot.Helpers.base_identifier import BaseIdentifier
+from . import base_identifier
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 
-base_identifier = BaseIdentifier()
+BaseIdentifier = base_identifier.BaseIdentifier()
 entry_point: Point2
 
 def find_entry_point(bot: BotAI):
-    base_identifier.identify_bases(bot)
+    BaseIdentifier.identify_bases(bot)
 
-    x_distance_to_natural = abs(base_identifier.enemy_spawn.x - base_identifier.enemy_natural.x)
-    y_distance_to_natural = abs(base_identifier.enemy_spawn.y - base_identifier.enemy_natural.y)
+    x_distance_to_natural = abs(BaseIdentifier.enemy_spawn.x - BaseIdentifier.enemy_natural.x)
+    y_distance_to_natural = abs(BaseIdentifier.enemy_spawn.y - BaseIdentifier.enemy_natural.y)
     vector: Point2
     if x_distance_to_natural > y_distance_to_natural:
         # Approach from y axis
-        if base_identifier.enemy_spawn.y > bot.game_info.map_center.y:
+        if BaseIdentifier.enemy_spawn.y > bot.game_info.map_center.y:
             # Approach base from below
             vector = Point2((0, -1))
         else:
@@ -24,7 +24,7 @@ def find_entry_point(bot: BotAI):
             vector = Point2((0, 1))
     else:
         # Approach from x axis
-        if base_identifier.enemy_spawn.x > bot.game_info.map_center.x:
+        if BaseIdentifier.enemy_spawn.x > bot.game_info.map_center.x:
             # Approach base from left
             vector = Point2((-1, 0))
         else:
@@ -32,7 +32,7 @@ def find_entry_point(bot: BotAI):
             vector = Point2((1, 0))
 
     global entry_point
-    entry_point = Point2((base_identifier.enemy_spawn.x + 40 * vector.x, base_identifier.enemy_spawn.y + 40 * vector.y))
+    entry_point = Point2((BaseIdentifier.enemy_spawn.x + 40 * vector.x, BaseIdentifier.enemy_spawn.y + 40 * vector.y))
 
 
 overlord_tag: int = 0
