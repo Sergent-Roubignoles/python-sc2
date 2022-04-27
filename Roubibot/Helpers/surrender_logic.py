@@ -21,5 +21,6 @@ async def surrender_if_overwhelming_losses(bot: BotAI):
 
 async def surrender(bot: BotAI):
     global has_surrendered
+    await bot.chat_send("Supply went from {0} to {1}; surrendering now.".format(highest_supply, bot.supply_used))
     await bot.chat_send("(pineapple)")
     has_surrendered = True

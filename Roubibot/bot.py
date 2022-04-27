@@ -1,7 +1,8 @@
 import random
+from typing import List
 
 from Helpers import queen_helper
-from Roubibot.Helpers import surrender_logic
+from Roubibot.Helpers import surrender_logic, scouting
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -22,14 +23,18 @@ class CompetitiveBot(BotAI):
     async def on_start(self):
         print("Game started")
         # Do things here before the game starts
+        scouting.find_entry_point(self)
 
     async def on_step(self, iteration):
         # Populate this function with whatever your bot should do!
         await surrender_logic.surrender_if_overwhelming_losses(self)
         if iteration == 0:
             await self.chat_send("glhf")
-        await self.bo()[self.buildOrderIndex]()
         queen_helper.inject(self, iteration)
+        move_scout(self)
+        scouting.move_overlord(self)
+
+        await self.bo()[self.buildOrderIndex]()
 
     def on_end(self, result):
         print("Game ended.")
@@ -97,8 +102,10 @@ class CompetitiveBot(BotAI):
         self.train(UnitTypeId.ZERGLING, int(self.supply_left))
 
         if self.units(UnitTypeId.ZERGLING).amount > 30:
+            target_base = scouting.base_identifier.enemy_3rd[random.randint(0, 1)]
             for ling in self.units(UnitTypeId.ZERGLING).idle:
-                ling.attack(self.enemy_start_locations[0])
+                ling.attack(target_base)
+                ling.attack(self.enemy_start_locations[0], queue= True)
                 self.first_push_done = True
         else:
             for unit in self.units(UnitTypeId.ZERGLING).idle:
@@ -136,9 +143,10 @@ class CompetitiveBot(BotAI):
 
         army = self.units.of_type({UnitTypeId.ZERGLING, UnitTypeId.BANELING})
         if army.amount > 80:
+            target_base = scouting.base_identifier.enemy_3rd[random.randint(0, 1)]
             for unit in army.idle:
-                unit.attack(self.enemy_start_locations[0])
-                self.first_push_done = True
+                unit.attack(target_base)
+                unit.attack(self.enemy_start_locations[0], queue= True)
         else:
             for unit in army.idle:
                 unit.move(self.townhalls.closest_to(self.enemy_start_locations[0]).position.towards(self.game_info.map_center, 10))
@@ -196,3 +204,20 @@ async def try_queue_research(bot: BotAI, structure_id: UnitTypeId, upgrade_id: U
         idle_structures = bot.structures(structure_id).idle
         if idle_structures.amount > 0:
             idle_structures.first.research(upgrade_id)
+
+scout_id: int = 0
+
+def move_scout(bot: BotAI):
+    global scout_id
+    position_to_scout: Point2
+
+    try:
+        scout = bot.all_own_units.by_tag(scout_id)
+        if scout.is_idle:
+            expansions: List[Point2] = bot.expansion_locations_list
+            random.shuffle(expansions)
+            scout.move(expansions[0].position)
+    except KeyError:
+        idle_lings = bot.all_own_units(UnitTypeId.ZERGLING).idle
+        if idle_lings.amount > 0:
+            scout_id = idle_lings.first.tag
