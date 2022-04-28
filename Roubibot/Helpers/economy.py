@@ -67,17 +67,38 @@ async def expand_eco(bot: BotAI, desired_workers: int, desired_gas: int):
                     await bot.build(UnitTypeId.HATCHERY, next_expansion)
 
 async def expand_army(bot: BotAI):
-    if not saving_money:
-        bot.train(UnitTypeId.ZERGLING, int(bot.supply_left))
+    global saving_money
+    if not saving_money and bot.structures(UnitTypeId.GREATERSPIRE).ready.amount > 0:
+        corruptors = bot.all_own_units(UnitTypeId.CORRUPTOR)
+        if corruptors.amount > 0:
+            if bot.can_afford(UnitTypeId.BROODLORD):
+                corruptors.first(AbilityId.MORPHTOBROODLORD_BROODLORD)
+            else:
+                saving_money = True
+
+    if not saving_money and bot.structures(UnitTypeId.SPIRE).ready.amount > 0:
+        corruptor_count = bot.all_own_units(UnitTypeId.CORRUPTOR).amount + bot.already_pending(UnitTypeId.CORRUPTOR)
+        broodlord_count = bot.all_own_units(UnitTypeId.BROODLORD).amount + bot.already_pending(UnitTypeId.BROODLORD)
+        if corruptor_count * 2 + broodlord_count * 4 < 0.4 * bot.supply_army:
+            if bot.can_afford(UnitTypeId.CORRUPTOR):
+                bot.train(UnitTypeId.CORRUPTOR)
+            else:
+                saving_money = True
+
+    if not saving_money and bot.structures(UnitTypeId.BANELINGNEST).ready.amount > 0:
         for zergling in bot.all_own_units(UnitTypeId.ZERGLING):
             if bot.can_afford(UnitTypeId.BANELING):
                 zergling(AbilityId.MORPHZERGLINGTOBANELING_BANELING)
+
+    if bot.minerals > 500:
+        bot.train(UnitTypeId.ZERGLING)
 
 async def develop_tech(bot: BotAI):
     tech.saving_money = False
     await tech.try_build_tech(bot, UnitTypeId.EVOLUTIONCHAMBER, 2)
     await tech.tech_banelings(bot)
     await tech.tech_zerglings(bot, adrenal_glands=True)
+    await tech.tech_broodlords(bot)
     await tech.tech_melee(bot)
     await tech.tech_ground_armor(bot)
 

@@ -21,7 +21,7 @@ async def try_build_tech(bot: BotAI, building_id: UnitTypeId, count = 1):
 
 async def try_queue_research(bot: BotAI, structure_id: UnitTypeId, upgrade_id: UpgradeId):
     global saving_money
-    if upgrade_id not in bot.state.upgrades:
+    if upgrade_id not in bot.state.upgrades and not bot.already_pending_upgrade(upgrade_id):
         idle_structures = bot.structures(structure_id).idle
         if idle_structures.amount > 0:
             if bot.can_afford(upgrade_id):
@@ -29,10 +29,18 @@ async def try_queue_research(bot: BotAI, structure_id: UnitTypeId, upgrade_id: U
             else:
                 saving_money = True
 
+def is_lair_tech_unlocked(bot: BotAI):
+    return bot.structures(UnitTypeId.LAIR).ready.amount + bot.structures(
+        UnitTypeId.HIVE).ready.amount > 0
+
+def is_hive_tech_unlocked(bot: BotAI):
+    return bot.structures(UnitTypeId.HIVE).ready.amount > 0
+
 async def tech_lair(bot: BotAI):
     global saving_money
     if bot.structures(UnitTypeId.LAIR).amount > 0:
         return
+
     if bot.structures(UnitTypeId.SPAWNINGPOOL).amount > 0:
         starting_base = bot.townhalls.closest_to(bot.start_location)
         if starting_base.is_idle:
@@ -43,27 +51,23 @@ async def tech_lair(bot: BotAI):
     else:
         await try_build_tech(bot, UnitTypeId.SPAWNINGPOOL)
 
-def is_lair_tech_unlocked(bot: BotAI):
-    return bot.structures(UnitTypeId.LAIR).ready.amount + bot.structures(UnitTypeId.HIVE).ready.amount > 0
-
-def is_hive_tech_unlocked(bot: BotAI):
-    return bot.structures(UnitTypeId.HIVE).ready.amount > 0
-
 async def tech_hive(bot: BotAI):
     global saving_money
     if bot.structures(UnitTypeId.HIVE).amount > 0:
         return
+
     lairs = bot.structures(UnitTypeId.LAIR)
     if lairs.amount > 0:
-        if bot.structures(UnitTypeId.INFESTATIONPIT).amount > 0:
-            lair = lairs.first
-            if lair.is_idle:
-                if bot.can_afford(UnitTypeId.HIVE):
-                    lair.train(UnitTypeId.HIVE)
-                else:
-                    saving_money = True
-        else:
-            await try_build_tech(bot, UnitTypeId.INFESTATIONPIT)
+        if lairs.ready.amount > 0:
+            if bot.structures(UnitTypeId.INFESTATIONPIT).amount > 0:
+                lair = lairs.first
+                if lair.is_idle:
+                    if bot.can_afford(UnitTypeId.HIVE):
+                        lair.train(UnitTypeId.HIVE)
+                    else:
+                        saving_money = True
+            else:
+                await try_build_tech(bot, UnitTypeId.INFESTATIONPIT)
     else:
         await tech_lair(bot)
 
@@ -102,7 +106,6 @@ async def tech_zerglings(bot: BotAI, adrenal_glands = False):
     else:
         await try_build_tech(bot, UnitTypeId.SPAWNINGPOOL)
 
-
 async def tech_banelings(bot: BotAI):
     if bot.structures(UnitTypeId.BANELINGNEST).amount > 0:
         if is_lair_tech_unlocked(bot):
@@ -114,3 +117,25 @@ async def tech_banelings(bot: BotAI):
             await try_build_tech(bot, UnitTypeId.BANELINGNEST)
         else:
             await try_build_tech(bot, UnitTypeId.SPAWNINGPOOL)
+
+async def tech_broodlords(bot: BotAI):
+    global saving_money
+    if bot.structures(UnitTypeId.GREATERSPIRE).amount > 0:
+        return
+
+    spires = bot.structures(UnitTypeId.SPIRE)
+    if spires.amount > 0:
+        if is_hive_tech_unlocked(bot):
+            idle_spires = spires.ready.idle
+            if idle_spires.amount > 0:
+                if bot.can_afford(UnitTypeId.GREATERSPIRE):
+                    idle_spires.first.train(UnitTypeId.GREATERSPIRE)
+                else:
+                    saving_money = True
+        else:
+            await tech_hive(bot)
+    else:
+        if is_lair_tech_unlocked(bot):
+            await try_build_tech(bot, UnitTypeId.SPIRE)
+        else:
+            await tech_lair(bot)

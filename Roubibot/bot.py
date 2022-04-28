@@ -120,13 +120,19 @@ class CompetitiveBot(BotAI):
             for unit in self.units(UnitTypeId.ZERGLING).idle:
                 unit.move(self.townhalls.closest_to(self.enemy_start_locations[0]).position.towards(self.game_info.map_center, 10))
 
+        if self.minerals > 800 and not self.already_pending(UnitTypeId.HATCHERY):
+            next_expansion = await self.get_next_expansion()
+            if next_expansion is not None:
+                if self.can_afford(UnitTypeId.HATCHERY):
+                    await self.build(UnitTypeId.HATCHERY, next_expansion)
+
     async def late_game_lings(self):
         economy.saving_money = False
         await economy.develop_tech(self)
         await economy.expand_eco(self, 60, 5)
         await economy.expand_army(self)
 
-        army = self.units.of_type({UnitTypeId.ZERGLING, UnitTypeId.BANELING})
+        army = self.units.of_type({UnitTypeId.ZERGLING, UnitTypeId.BANELING, UnitTypeId.CORRUPTOR, UnitTypeId.BROODLORD})
         if self.supply_army > 70:
             default_target = scouting.BaseIdentifier.enemy_3rd[random.randint(0, 1)]
             targets = self.enemy_structures
@@ -138,8 +144,10 @@ class CompetitiveBot(BotAI):
                     unit.attack(default_target)
                     unit.attack(self.enemy_start_locations[0], queue= True)
         else:
+            staging_point = self.townhalls.closest_to(self.enemy_start_locations[0]).position.towards(self.game_info.map_center, 10)
             for unit in army.idle:
-                unit.move(self.townhalls.closest_to(self.enemy_start_locations[0]).position.towards(self.game_info.map_center, 10))
+                if unit.distance_to(staging_point) > 10:
+                    unit.move(staging_point)
 
     def current_plus_pending_count(self, unit_id: UnitTypeId):
         return int(self.units.of_type(unit_id).amount + self.already_pending(unit_id))
