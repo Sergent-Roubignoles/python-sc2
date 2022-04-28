@@ -1,7 +1,7 @@
 import random
 from typing import List
 
-from Helpers import queen_helper,surrender_logic, scouting
+from Helpers import queen_helper, surrender_logic, scouting, economy
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -13,6 +13,7 @@ class CompetitiveBot(BotAI):
 
     buildOrderIndex = 0
     first_push_done = False
+    panic_mode = False
 
     def select_target(self) -> Point2:
         if self.enemy_structures:
@@ -29,11 +30,20 @@ class CompetitiveBot(BotAI):
         await surrender_logic.surrender_if_overwhelming_losses(self)
         if iteration == 0:
             await self.chat_send("glhf")
-        queen_helper.inject(self, iteration)
-        move_scout(self)
-        scouting.move_overlord(self)
 
-        await self.bo()[self.buildOrderIndex]()
+        if self.panic_mode:
+            for unit in self.all_own_units.idle:
+                unit.attack(self.enemy_start_locations[0])
+            return
+
+        if self.townhalls.amount > 0 and self.workers.amount > 0:
+            await self.bo()[self.buildOrderIndex]()
+            queen_helper.inject(self, iteration)
+            move_scout(self)
+            scouting.move_overlord(self)
+        else:
+            await self.chat_send("Panic mode engaged!!")
+            self.panic_mode = True
 
     def on_end(self, result):
         print("Game ended.")
@@ -111,41 +121,22 @@ class CompetitiveBot(BotAI):
                 unit.move(self.townhalls.closest_to(self.enemy_start_locations[0]).position.towards(self.game_info.map_center, 10))
 
     async def late_game_lings(self):
-        await self.tech_banelings()
-        await self.tech_hive()
-        self.research(UpgradeId.ZERGLINGATTACKSPEED)
-
-        # Expand if out of mineral fields
-        available_mineral_fields = []
-        for mineral_field in self.mineral_field:
-            for hatchery in self.townhalls.ready:
-                if mineral_field.distance_to(hatchery) < 10:
-                    available_mineral_fields.append(mineral_field)
-        if len(available_mineral_fields) < 24 and not self.already_pending(UnitTypeId.HATCHERY):
-            next_expansion = await self.get_next_expansion()
-            if next_expansion is not None:
-                await self.build(UnitTypeId.HATCHERY, next_expansion)
-
-        # Build workers
-        if self.supply_workers < 60:
-            self.train(UnitTypeId.DRONE, int(60 - self.supply_workers))
-        await self.distribute_workers()
-
-        if self.can_afford(UnitTypeId.EXTRACTOR) and len(self.gas_buildings) + self.already_pending(UnitTypeId.EXTRACTOR) < 3:
-            geyser = self.vespene_geyser.closest_to(self.townhalls.first)
-            self.workers.closest_to(geyser).build_gas(geyser)
-
-        self.train(UnitTypeId.ZERGLING, int(self.supply_left))
-        for zergling in self.all_own_units(UnitTypeId.ZERGLING):
-            if self.can_afford(UnitTypeId.BANELING):
-                zergling(AbilityId.MORPHZERGLINGTOBANELING_BANELING)
+        economy.saving_money = False
+        await economy.develop_tech(self)
+        await economy.expand_eco(self, 60, 5)
+        await economy.expand_army(self)
 
         army = self.units.of_type({UnitTypeId.ZERGLING, UnitTypeId.BANELING})
-        if army.amount > 80:
-            target_base = scouting.BaseIdentifier.enemy_3rd[random.randint(0, 1)]
-            for unit in army.idle:
-                unit.attack(target_base)
-                unit.attack(self.enemy_start_locations[0], queue= True)
+        if self.supply_army > 70:
+            default_target = scouting.BaseIdentifier.enemy_3rd[random.randint(0, 1)]
+            targets = self.enemy_structures
+            if targets.amount > 0:
+                for unit in army.idle:
+                    unit.attack(targets.closest_to(self.game_info.map_center).position)
+            else:
+                for unit in army.idle:
+                    unit.attack(default_target)
+                    unit.attack(self.enemy_start_locations[0], queue= True)
         else:
             for unit in army.idle:
                 unit.move(self.townhalls.closest_to(self.enemy_start_locations[0]).position.towards(self.game_info.map_center, 10))
@@ -162,40 +153,6 @@ class CompetitiveBot(BotAI):
         if self.can_afford(UnitTypeId.HATCHERY) and len(self.townhalls) + self.already_pending(UnitTypeId.HATCHERY) < desired_hatcheries:
             next_expansion = await self.get_next_expansion()
             await self.build(UnitTypeId.HATCHERY, next_expansion)
-
-    async def tech_lair(self):
-        if self.structures(UnitTypeId.LAIR).amount > 0:
-            return
-        if self.structures(UnitTypeId.SPAWNINGPOOL).amount > 0:
-            starting_base = self.townhalls.closest_to(self.start_location)
-            if starting_base.is_idle and self.can_afford(UnitTypeId.LAIR):
-                starting_base.train(UnitTypeId.LAIR)
-        else:
-            await self.try_build_tech(UnitTypeId.SPAWNINGPOOL)
-
-    async def tech_hive(self):
-        if self.structures(UnitTypeId.HIVE).amount > 0:
-            return
-        lairs = self.structures(UnitTypeId.LAIR)
-        if lairs.amount > 0:
-            if self.structures(UnitTypeId.INFESTATIONPIT).amount > 0:
-                lair = lairs.first
-                if lair.is_idle and self.can_afford(UnitTypeId.HIVE):
-                    lair.train(UnitTypeId.HIVE)
-            else:
-                await self.try_build_tech(UnitTypeId.INFESTATIONPIT)
-        else:
-            await self.tech_lair()
-
-    async def tech_banelings(self):
-        if self.structures(UnitTypeId.BANELINGNEST).amount > 0:
-            await try_queue_research(self, UnitTypeId.BANELINGNEST, UpgradeId.BANELINGSPEED)
-            return
-
-        if self.structures(UnitTypeId.SPAWNINGPOOL).amount > 0:
-            await self.try_build_tech(UnitTypeId.BANELINGNEST)
-        else:
-            await self.try_build_tech(UnitTypeId.SPAWNINGPOOL)
 
 
 async def try_queue_research(bot: BotAI, structure_id: UnitTypeId, upgrade_id: UpgradeId):
