@@ -1,5 +1,5 @@
 import random
-from typing import List
+from typing import List, Coroutine
 
 from . import queen_helper, surrender_logic, scouting, tech
 from sc2.bot_ai import BotAI
@@ -14,8 +14,8 @@ async def expand_eco(bot: BotAI, desired_workers: int, desired_gas: int):
     await bot.distribute_workers()
 
     global saving_money
-    if saving_money:
-        return
+    # if saving_money:
+    #     return
 
     # Build more hatcheries
     exploitable_mineral_fields = []
@@ -40,7 +40,7 @@ async def expand_eco(bot: BotAI, desired_workers: int, desired_gas: int):
     if exploitable_extractors.amount + bot.already_pending(UnitTypeId.EXTRACTOR) < desired_gas:
         unexploited_geysers = []
         for geyser in bot.vespene_geyser:
-            for hatchery in bot.townhalls:
+            for hatchery in bot.townhalls.ready:
                 if geyser.distance_to(hatchery) < 10:
                     unexploited_geysers.append(geyser)
                     continue
@@ -70,7 +70,7 @@ async def expand_army(bot: BotAI):
     global saving_money
     if not saving_money and bot.structures(UnitTypeId.GREATERSPIRE).ready.amount > 0:
         corruptors = bot.all_own_units(UnitTypeId.CORRUPTOR)
-        if corruptors.amount > 0:
+        if corruptors.amount > 1:
             if bot.can_afford(UnitTypeId.BROODLORD):
                 corruptors.first(AbilityId.MORPHTOBROODLORD_BROODLORD)
             else:
@@ -90,6 +90,10 @@ async def expand_army(bot: BotAI):
             if bot.can_afford(UnitTypeId.BANELING):
                 zergling(AbilityId.MORPHZERGLINGTOBANELING_BANELING)
 
+    if not saving_money and bot.structures(UnitTypeId.ROACHWARREN).ready.amount > 0:
+        if bot.can_afford(UnitTypeId.ROACH):
+            bot.train(UnitTypeId.ROACH)
+
     if bot.minerals > 500:
         bot.train(UnitTypeId.ZERGLING)
 
@@ -106,3 +110,17 @@ async def develop_tech(bot: BotAI):
     if tech.saving_money:
         saving_money = True
 
+async def develop_tech_list(bot: BotAI, techs: List[Coroutine]):
+    tech.saving_money = False
+
+    for coroutine in techs:
+        await coroutine
+
+    global saving_money
+    if tech.saving_money:
+        saving_money = True
+
+def reset_saving():
+    global saving_money
+    saving_money = False
+    tech.saving_money = False

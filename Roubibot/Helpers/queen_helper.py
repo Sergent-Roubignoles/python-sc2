@@ -44,12 +44,23 @@ def inject(bot: BotAI, iteration: int):
         borders_of_creep = []
         for point in get_whole_map(bot):
             if is_border_of_creep(bot, point):
+                for base_location in bot.expansion_locations_list: # Do not spread on base locations
+                    if point.distance_to(base_location) < 8:
+                        continue
                 borders_of_creep.append(point)
         random.shuffle(borders_of_creep)
 
         for queen in unreserved_queens.idle.filter(lambda unit: unit.energy >= 25):
-            if len(borders_of_creep) > 0:
-                queen(AbilityId.BUILD_CREEPTUMOR_QUEEN, borders_of_creep.pop())
+            while len(borders_of_creep) > 0:
+                target = borders_of_creep.pop()
+                target_is_safe = True
+                for structure in bot.enemy_structures: # Do not bring queens close to enemy base
+                    if target.distance_to(structure) < 20:
+                        target_is_safe = False
+                        break
+                if target_is_safe:
+                    queen(AbilityId.BUILD_CREEPTUMOR_QUEEN, target)
+                    break
 
         tumors = bot.structures(UnitTypeId.CREEPTUMORBURROWED)
         for tumor in tumors:

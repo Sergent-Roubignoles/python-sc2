@@ -12,22 +12,24 @@ saving_money = False
 
 async def try_build_tech(bot: BotAI, building_id: UnitTypeId, count = 1):
     global saving_money
-    if bot.structures(building_id).amount + bot.already_pending(building_id) < count:
-        if bot.can_afford(building_id):
-            await bot.build(building_id, near=bot.townhalls.closest_to(bot.start_location).position.towards(
-                bot.game_info.map_center, 7))
-        else:
-            saving_money = True
+    if not saving_money:
+        if bot.structures(building_id).amount + bot.already_pending(building_id) < count:
+            if bot.can_afford(building_id):
+                await bot.build(building_id, near=bot.townhalls.closest_to(bot.start_location).position.towards(
+                    bot.game_info.map_center, 7))
+            else:
+                saving_money = True
 
 async def try_queue_research(bot: BotAI, structure_id: UnitTypeId, upgrade_id: UpgradeId):
     global saving_money
-    if upgrade_id not in bot.state.upgrades and not bot.already_pending_upgrade(upgrade_id):
-        idle_structures = bot.structures(structure_id).idle
-        if idle_structures.amount > 0:
-            if bot.can_afford(upgrade_id):
-                idle_structures.first.research(upgrade_id)
-            else:
-                saving_money = True
+    if not saving_money:
+        if upgrade_id not in bot.state.upgrades and not bot.already_pending_upgrade(upgrade_id):
+            idle_structures = bot.structures(structure_id).idle
+            if idle_structures.amount > 0:
+                if bot.can_afford(upgrade_id):
+                    idle_structures.first.research(upgrade_id)
+                else:
+                    saving_money = True
 
 def is_lair_tech_unlocked(bot: BotAI):
     return bot.structures(UnitTypeId.LAIR).ready.amount + bot.structures(
@@ -115,6 +117,21 @@ async def tech_banelings(bot: BotAI):
     else:
         if bot.structures(UnitTypeId.SPAWNINGPOOL).amount > 0:
             await try_build_tech(bot, UnitTypeId.BANELINGNEST)
+        else:
+            await try_build_tech(bot, UnitTypeId.SPAWNINGPOOL)
+
+async def tech_roaches(bot: BotAI, tunneling_claws = False):
+    if bot.structures(UnitTypeId.ROACHWARREN).amount > 0:
+        if is_lair_tech_unlocked(bot):
+            await try_queue_research(bot, UnitTypeId.ROACHWARREN, UpgradeId.ROACHSPEED)
+            if tunneling_claws:
+                await try_queue_research(bot, UnitTypeId.ROACHWARREN, UpgradeId.TUNNELINGCLAWS)
+                await try_queue_research(bot, UnitTypeId.HATCHERY, UpgradeId.BURROW)
+        else:
+            await tech_lair(bot)
+    else:
+        if bot.structures(UnitTypeId.SPAWNINGPOOL).amount > 0:
+            await try_build_tech(bot, UnitTypeId.ROACHWARREN)
         else:
             await try_build_tech(bot, UnitTypeId.SPAWNINGPOOL)
 
