@@ -67,6 +67,9 @@ async def expand_eco(bot: BotAI, desired_workers: int, desired_gas: int):
                     await bot.build(UnitTypeId.HATCHERY, next_expansion)
 
 async def expand_army(bot: BotAI):
+    if bot.supply_used == 200:
+        return
+
     global saving_money
     if not saving_money and bot.structures(UnitTypeId.GREATERSPIRE).ready.amount > 0:
         corruptors = bot.all_own_units(UnitTypeId.CORRUPTOR)

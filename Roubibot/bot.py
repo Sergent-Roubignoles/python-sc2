@@ -43,6 +43,7 @@ class CompetitiveBot(BotAI):
             # Main code
             await strategy.analyse(self)
             await self.bo()[self.buildOrderIndex]()
+            self.emergency_response()
             queen_helper.inject(self, iteration)
             move_scout(self)
             scouting.move_overlord(self)
@@ -56,6 +57,27 @@ class CompetitiveBot(BotAI):
 
     def bo(self):
         return [self.s16pool_hatch_gas, self.bo_over]
+
+    def emergency_response(self):
+        threats = []
+        for enemy in self.all_enemy_units:
+            for base in self.townhalls:
+                if enemy.distance_to(base) < 20:
+                    threats.append(enemy)
+                    break
+
+        for unit in self.all_own_units.exclude_type(UnitTypeId.OVERLORD):
+            if not unit.is_attacking:
+                for enemy in threats:
+                    if unit.type_id == UnitTypeId.DRONE:
+                        if unit.distance_to(enemy) < 5:
+                            unit.attack(enemy)
+                    elif unit.type_id == UnitTypeId.QUEEN:
+                        if unit.distance_to(enemy) < 10:
+                            unit.attack(enemy)
+                    else:
+                        unit.attack(enemy)
+                    break
 
     async def s16pool_hatch_gas(self):
         await self.distribute_workers()
