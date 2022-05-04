@@ -22,7 +22,7 @@ def emergency_response(bot: BotAI):
                         break
             elif unit.type_id == UnitTypeId.QUEEN:
                 for enemy in threats:
-                    if unit.distance_to(enemy) < 10:
+                    if unit.distance_to(enemy) < 20:
                         unit.attack(enemy)
                         break
             else:

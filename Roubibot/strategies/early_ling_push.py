@@ -13,8 +13,7 @@ def current_plus_pending_count(bot: BotAI, unit_id: UnitTypeId):
 
 
 class EarlyLingPush(Strategy):
-
-    warning_printed = False
+    aggression_detected = False
 
     async def on_step(self, bot: BotAI):
         # Increase supply
@@ -23,43 +22,61 @@ class EarlyLingPush(Strategy):
                 return
             bot.train(UnitTypeId.OVERLORD)
 
-        # Spot early aggression
-        known_enemy_units = strategy_analyser.get_known_enemy_units()
-        enemy_army_value = 0
-        for enemy in known_enemy_units:
-            if enemy.type_id in strategy_analyser.harmless_units:
-                continue
-            enemy_value = bot.calculate_unit_value(enemy.type_id)
-            enemy_army_value += enemy_value.minerals
-            enemy_army_value += enemy_value.vespene
-
-        own_army_value = 0
-        for unit in bot.units.exclude_type([UnitTypeId.DRONE, UnitTypeId.OVERLORD]):
-            unit_value = bot.calculate_unit_value(unit.type_id)
-            own_army_value += unit_value.minerals
-            own_army_value += unit_value.vespene
-
-        if not self.warning_printed:
-            if enemy_army_value > 200 and enemy_army_value > 3 * own_army_value:
-                await bot.chat_send("Enemy army value is {0}, defend the base!".format(enemy_army_value))
-                self.warning_printed = True
+        # Look for early aggression
+        if not self.aggression_detected:
+            for second_base in bot.townhalls.not_ready:
+                if second_base.build_progress > 0.80:
+                    enemy_townhalls = bot.enemy_structures({UnitTypeId.HATCHERY, UnitTypeId.NEXUS, UnitTypeId.COMMANDCENTER})
+                    if enemy_townhalls.amount < 2:
+                        self.aggression_detected = True
+                        await bot.chat_send("No enemy expansion detected yet: defend the base!")
+                    break
 
         desired_techs = [economy.tech.tech_zerglings(bot, False)]
         await economy.execute_tech_coroutines(bot, desired_techs)
-        await economy.expand_eco(bot, 35, 1)
 
+        if self.aggression_detected:
+            saving_money_for_defense = False
+            if bot.structures(UnitTypeId.SPAWNINGPOOL).ready.amount > 0:
+
+                # Get 2 spines on b2
+                if bot.townhalls.ready.amount > 1:
+                    if bot.structures(UnitTypeId.SPINECRAWLER).amount + bot.already_pending(UnitTypeId.SPINECRAWLER) < 2:
+                        if bot.can_afford(UnitTypeId.SPINECRAWLER):
+                            second_base = bot.townhalls.closest_to(bot.game_info.map_center)
+                            await bot.build(UnitTypeId.SPINECRAWLER, second_base.position.towards(bot.game_info.map_center, 3))
+                        else:
+                            saving_money_for_defense = True
+
+                # Get 4 queens
+                if bot.units(UnitTypeId.QUEEN).amount + bot.already_pending(UnitTypeId.QUEEN) < 4:
+                    idle_hatcheries = bot.townhalls.idle
+                    if idle_hatcheries.amount > 0:
+                        if bot.can_afford(UnitTypeId.QUEEN):
+                            idle_hatcheries.first.train(UnitTypeId.QUEEN)
+                        else:
+                            saving_money_for_defense = True
+
+                # Get 8 zerglings
+                if bot.units(UnitTypeId.ZERGLING).amount + bot.already_pending(UnitTypeId.ZERGLING) < 8:
+                    bot.train(UnitTypeId.ZERGLING)
+
+            if not saving_money_for_defense:
+                await economy.expand_eco(bot, 19, 1)
+
+        await economy.expand_eco(bot, 35, 1)
         bot.train(UnitTypeId.ZERGLING, int(bot.supply_left))
 
-        if bot.units(UnitTypeId.ZERGLING).amount > 15:
-            target_base = base_identifier.enemy_3rd[random.randint(0, 1)]
+        if bot.units(UnitTypeId.ZERGLING).amount > 10:
+            target_bases = base_identifier.enemy_3rd
             for ling in bot.units(UnitTypeId.ZERGLING).idle:
-                ling.attack(target_base)
-                ling.attack(bot.enemy_start_locations[0], queue=True)
+                ling.attack(target_bases[0])
+                ling.attack(target_bases[1], queue=True)
             self.is_finished = True
         else:
             for unit in bot.units(UnitTypeId.ZERGLING).idle:
                 unit.move(
-                    bot.townhalls.closest_to(bot.enemy_start_locations[0]).position.towards(bot.game_info.map_center,
+                    bot.townhalls.closest_to(bot.game_info.map_center).position.towards(bot.game_info.map_center,
                                                                                               10))
 
     def prefered_follow_up_strategy(self) -> Strategy:
