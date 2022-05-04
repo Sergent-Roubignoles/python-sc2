@@ -38,7 +38,7 @@ def identify_bases(bot: BotAI):
             if len(enemy_3rd) < 2:
                 enemy_3rd.append(base_location)
             else:
-                if base_location.distance_to(enemy_natural) < base_location.distance_to(enemy_3rd[0]):
+                if enemy_natural.distance_to(base_location) < enemy_natural.distance_to(enemy_3rd[0]):
                     enemy_3rd[0] = base_location
 
             # Keep furthest base at index 0

@@ -27,7 +27,12 @@ class EarlyLingPush(Strategy):
             for second_base in bot.townhalls.not_ready:
                 if second_base.build_progress > 0.80:
                     enemy_townhalls = bot.enemy_structures({UnitTypeId.HATCHERY, UnitTypeId.NEXUS, UnitTypeId.COMMANDCENTER})
-                    if enemy_townhalls.amount < 2:
+                    enemy_expansions = 0
+                    for townhall in enemy_townhalls:
+                        if townhall.distance_to(bot.enemy_start_locations[0]) > 5:
+                            enemy_expansions += 1
+
+                    if enemy_expansions < 1:
                         self.aggression_detected = True
                         await bot.chat_send("No enemy expansion detected yet: defend the base!")
                     break

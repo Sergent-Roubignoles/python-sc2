@@ -35,9 +35,10 @@ async def expand_eco(bot: BotAI, desired_workers: int, desired_gas: int):
 
     # Build minimum queens
     current_queens = bot.units(UnitTypeId.QUEEN).amount + bot.already_pending(UnitTypeId.QUEEN)
-    desired_queens = bot.townhalls.amount + 1
+    desired_queens = bot.townhalls.amount * 1.5
     if current_queens < desired_queens:
         if not bot.can_afford(UnitTypeId.QUEEN) or bot.structures(UnitTypeId.SPAWNINGPOOL).ready.amount == 0:
+            saving_money = True
             return # Save or wait for spawning pool
         idle_townhalls = bot.townhalls.ready.idle
         if idle_townhalls.amount > 0:
@@ -82,6 +83,15 @@ async def expand_army(bot: BotAI):
 
     global saving_money
 
+    # Ultralisks
+    if not saving_money and bot.structures(UnitTypeId.ULTRALISKCAVERN).ready.amount > 0:
+        ultralisks = bot.units(UnitTypeId.ULTRALISK).amount + bot.already_pending(UnitTypeId.ULTRALISK)
+        if ultralisks * 6 < 0.15 * bot.supply_army:
+            if bot.can_afford(UnitTypeId.ULTRALISK):
+                bot.train(UnitTypeId.ULTRALISK)
+            else:
+                saving_money = True
+
     # Broodlords
     if not saving_money and bot.structures(UnitTypeId.GREATERSPIRE).ready.amount > 0:
         corruptors = bot.units(UnitTypeId.CORRUPTOR)
@@ -95,7 +105,7 @@ async def expand_army(bot: BotAI):
     if not saving_money and bot.structures({UnitTypeId.SPIRE, UnitTypeId.GREATERSPIRE}).ready.amount > 0:
         corruptor_count = bot.units(UnitTypeId.CORRUPTOR).amount + bot.already_pending(UnitTypeId.CORRUPTOR)
         broodlord_count = bot.units(UnitTypeId.BROODLORD).amount + bot.already_pending(UnitTypeId.BROODLORD)
-        if (corruptor_count + broodlord_count) * 4 < 0.4 * bot.supply_army:
+        if (corruptor_count + broodlord_count) * 4 < 0.33 * bot.supply_army:
             if bot.can_afford(UnitTypeId.CORRUPTOR):
                 bot.train(UnitTypeId.CORRUPTOR)
             else:
@@ -104,8 +114,8 @@ async def expand_army(bot: BotAI):
     # Banelings
     if not saving_money and bot.structures(UnitTypeId.BANELINGNEST).ready.amount > 0:
         zerglings = bot.units(UnitTypeId.ZERGLING)
-        # Keep 50/50 ling-bane ratio
-        if bot.can_afford(UnitTypeId.BANELING) and zerglings.amount > bot.units({UnitTypeId.BANELING, UnitTypeId.BANELINGCOCOON}).amount:
+        # Keep 66/33 ling-bane ratio
+        if bot.can_afford(UnitTypeId.BANELING) and zerglings.amount > 2 *bot.units({UnitTypeId.BANELING, UnitTypeId.BANELINGCOCOON}).amount:
             zerglings.closest_to(bot.start_location)(AbilityId.MORPHZERGLINGTOBANELING_BANELING)
 
     # Roaches
@@ -114,7 +124,7 @@ async def expand_army(bot: BotAI):
             bot.train(UnitTypeId.ROACH)
 
     # Zerglings
-    if bot.minerals > 500:
+    if not saving_money:
         bot.train(UnitTypeId.ZERGLING)
 
 async def execute_tech_coroutines(bot: BotAI, techs: List[Coroutine]):

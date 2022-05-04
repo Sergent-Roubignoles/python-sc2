@@ -21,15 +21,16 @@ async def try_build_tech(bot: BotAI, building_id: UnitTypeId):
 
 class EndGame(Strategy):
 
-    workers_desired = 60
-    gas_desired = 5
-    army_to_push = 40
+    workers_desired = 70
+    gas_desired = 6
+    army_to_push = 100
 
     first_push_done = False
     current_attack_group: AttackGroup = None
 
     banelings_desired = False
     roaches_desired = False
+    ultralisks_desired = False
 
     async def on_step(self, bot: BotAI):
 
@@ -44,6 +45,11 @@ class EndGame(Strategy):
             for enemy in known_enemy_units:
                 if enemy.type_id in [UnitTypeId.ZEALOT, UnitTypeId.COLOSSUS]:
                     self.roaches_desired = True
+                    break
+        if not self.ultralisks_desired and bot.structures(UnitTypeId.GREATERSPIRE).ready.amount > 0:
+            for enemy in known_enemy_units:
+                if enemy.type_id in [UnitTypeId.MARINE]:
+                    self.ultralisks_desired = True
                     break
 
         # Increase supply
@@ -60,29 +66,39 @@ class EndGame(Strategy):
             desired_techs.append(economy.tech.tech_banelings(bot))
         if self.roaches_desired:
             desired_techs.append(economy.tech.tech_roaches(bot))
+        if self.ultralisks_desired:
+            desired_techs.append(economy.tech.tech_ultralisks(bot))
         if bot.supply_used > 80:
             desired_techs.append(economy.tech.try_build_tech(bot, UnitTypeId.EVOLUTIONCHAMBER, 2))
             desired_techs.append(economy.tech.tech_melee(bot))
             desired_techs.append(economy.tech.tech_ground_armor(bot))
 
         await economy.execute_tech_coroutines(bot, desired_techs)
+
+        # Keep minimum army
+        if bot.supply_army * 2 < bot.supply_workers:
+            await economy.expand_army(bot)
+
         await economy.expand_eco(bot, self.workers_desired, self.gas_desired)
         await economy.expand_army(bot)
 
         # Attack if army large enough
         army = bot.units.of_type(
             {UnitTypeId.ZERGLING, UnitTypeId.BANELING, UnitTypeId.ROACH, UnitTypeId.CORRUPTOR,
-             UnitTypeId.BROODLORD})
+             UnitTypeId.BROODLORD, UnitTypeId.ULTRALISK})
         if bot.supply_army > self.army_to_push or bot.supply_used > 190:
 
-            targets = bot.enemy_structures
-            chosen_target: Point2 = base_identifier.enemy_3rd[random.randint(0, 1)]
-            if targets.amount > 0:
-                chosen_target = targets.closest_to(bot.game_info.map_center).position
+            target_structures = bot.enemy_structures
+            target_bases = base_identifier.enemy_3rd
 
             for unit in army.idle:
-                unit.attack(chosen_target)
-                unit.attack(bot.enemy_start_locations[0], queue=True)
+                closest_base = target_bases[0]
+                if unit.distance_to(target_bases[1]) < unit.distance_to(target_bases[0]):
+                    closest_base = target_bases[1]
+                    
+                unit.attack(closest_base.position)
+                unit.attack(target_structures.closest_to(unit).position, queue=True)
+                unit.attack(bot.enemy_start_locations[0].position, queue=True)
 
             # Increase workers and army desired
             self.workers_desired += 10

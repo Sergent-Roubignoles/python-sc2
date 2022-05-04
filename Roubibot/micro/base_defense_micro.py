@@ -6,9 +6,10 @@ def emergency_response(bot: BotAI):
     threats = []
     for enemy in bot.enemy_units:
         for base in bot.townhalls:
-            if enemy.distance_to(base) < 20:
-                threats.append(enemy)
-                break
+            if base.health_percentage < 1:
+                if enemy.distance_to(base) < 20:
+                    threats.append(enemy)
+                    break
 
     if len(threats) == 0:
         return

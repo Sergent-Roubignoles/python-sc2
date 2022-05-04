@@ -150,3 +150,16 @@ async def tech_broodlords(bot: BotAI):
             await try_build_tech(bot, UnitTypeId.SPIRE)
         else:
             await tech_lair(bot)
+
+async def tech_ultralisks(bot: BotAI):
+    global saving_money
+    if bot.structures(UnitTypeId.ULTRALISKCAVERN).amount > 0:
+        await try_queue_research(bot, UnitTypeId.ULTRALISKCAVERN, UpgradeId.CHITINOUSPLATING)
+    else:
+        if is_hive_tech_unlocked(bot):
+            if bot.can_afford(UnitTypeId.ULTRALISKCAVERN):
+                await try_build_tech(bot, UnitTypeId.ULTRALISKCAVERN)
+            else:
+                saving_money = True
+        else:
+            await tech_hive(bot)
