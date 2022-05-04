@@ -1,20 +1,15 @@
-from typing import List
+import random
 
 import numpy as np
 
-from sc2.position import Point2
 from sc2.bot_ai import BotAI
-import os
-import sys
-import random
 from sc2.ids.ability_id import AbilityId
-from sc2.ids.unit_typeid import UnitTypeId
-from sc2.ids.upgrade_id import UpgradeId
 from sc2.ids.buff_id import BuffId
-from sc2.unit import Unit
+from sc2.ids.unit_typeid import UnitTypeId
+from sc2.position import Point2
 
 
-def inject(bot: BotAI, iteration: int):
+def inject_and_creep_spread(bot: BotAI, iteration: int):
     unreserved_queens = bot.units(UnitTypeId.QUEEN)
 
     # Keep 1 immobile queen for each hatch
