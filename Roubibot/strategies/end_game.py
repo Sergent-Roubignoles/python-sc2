@@ -1,4 +1,6 @@
-from helpers import strategy_analyser
+import random
+
+from helpers import strategy_analyser, base_identifier
 from macro import economy
 from micro.army_group import AttackGroup
 from sc2.bot_ai import BotAI
@@ -31,6 +33,7 @@ class EndGame(Strategy):
 
     async def on_step(self, bot: BotAI):
 
+        # Determine army composition
         known_enemy_units = strategy_analyser.get_known_enemy_units()
         if not self.banelings_desired:
             for enemy in known_enemy_units:
@@ -49,15 +52,15 @@ class EndGame(Strategy):
                 return
             bot.train(UnitTypeId.OVERLORD)
 
+        # Spend money
         economy.reset_saving()
-
         desired_techs = [economy.tech.tech_zerglings(bot, adrenal_glands=True),
                          economy.tech.tech_broodlords(bot)]
         if self.banelings_desired:
             desired_techs.append(economy.tech.tech_banelings(bot))
         if self.roaches_desired:
             desired_techs.append(economy.tech.tech_roaches(bot))
-        if bot.minerals > 700:
+        if bot.supply_used > 80:
             desired_techs.append(economy.tech.try_build_tech(bot, UnitTypeId.EVOLUTIONCHAMBER, 2))
             desired_techs.append(economy.tech.tech_melee(bot))
             desired_techs.append(economy.tech.tech_ground_armor(bot))
@@ -66,32 +69,19 @@ class EndGame(Strategy):
         await economy.expand_eco(bot, self.workers_desired, self.gas_desired)
         await economy.expand_army(bot)
 
-        # Update attack group unit list
-        # if self.current_attack_group is not None:
-        #     self.current_attack_group.update_attacker_list()
-        #     if len(self.current_attack_group.attacker_tags) == 0:
-        #         self.current_attack_group = None
-
-        # Create attack group if army large enough
+        # Attack if army large enough
         army = bot.units.of_type(
             {UnitTypeId.ZERGLING, UnitTypeId.BANELING, UnitTypeId.ROACH, UnitTypeId.CORRUPTOR,
              UnitTypeId.BROODLORD})
         if bot.supply_army > self.army_to_push or bot.supply_used > 190:
-            # if self.current_attack_group is None:
-            #     new_attack_group = AttackGroup()
-            #     for unit in army:
-            #         new_attack_group.attacker_tags.append(unit.tag)
-            #
-            #     self.current_attack_group = new_attack_group
 
             targets = bot.enemy_structures
-            chosen_target: Point2 = None
+            chosen_target: Point2 = base_identifier.enemy_3rd[random.randint(0, 1)]
             if targets.amount > 0:
                 chosen_target = targets.closest_to(bot.game_info.map_center).position
 
             for unit in army.idle:
-                if chosen_target is not None:
-                    unit.attack(chosen_target)
+                unit.attack(chosen_target)
                 unit.attack(bot.enemy_start_locations[0], queue=True)
 
             # Increase workers and army desired
@@ -102,18 +92,6 @@ class EndGame(Strategy):
             if self.gas_desired > 8:
                 self.gas_desired = 8
             self.army_to_push += 30
-
-        # Update attack group target
-        # if self.current_attack_group is not None:
-        #     targets = bot.enemy_structures
-        #     chosen_target: Point2
-        #     if targets.amount > 0:
-        #         chosen_target = targets.closest_to(bot.game_info.map_center).position
-        #     else:
-        #         chosen_target = bot.enemy_start_locations[0]
-        #
-        #     self.current_attack_group.target = chosen_target
-        #     self.current_attack_group.attack()
 
         # Move remaining units to staging point
         staging_point = bot.townhalls.closest_to(bot.enemy_start_locations[0]).position.towards(

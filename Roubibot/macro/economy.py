@@ -92,10 +92,10 @@ async def expand_army(bot: BotAI):
                 saving_money = True
 
     # Corruptors
-    if not saving_money and bot.structures(UnitTypeId.SPIRE).ready.amount > 0:
+    if not saving_money and bot.structures({UnitTypeId.SPIRE, UnitTypeId.GREATERSPIRE}).ready.amount > 0:
         corruptor_count = bot.units(UnitTypeId.CORRUPTOR).amount + bot.already_pending(UnitTypeId.CORRUPTOR)
         broodlord_count = bot.units(UnitTypeId.BROODLORD).amount + bot.already_pending(UnitTypeId.BROODLORD)
-        if corruptor_count * 2 + broodlord_count * 4 < 0.4 * bot.supply_army:
+        if (corruptor_count + broodlord_count) * 4 < 0.4 * bot.supply_army:
             if bot.can_afford(UnitTypeId.CORRUPTOR):
                 bot.train(UnitTypeId.CORRUPTOR)
             else:
