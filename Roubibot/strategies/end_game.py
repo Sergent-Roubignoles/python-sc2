@@ -85,14 +85,14 @@ class EndGame(Strategy):
             #     self.current_attack_group = new_attack_group
 
             targets = bot.enemy_structures
-            chosen_target: Point2
+            chosen_target: Point2 = None
             if targets.amount > 0:
                 chosen_target = targets.closest_to(bot.game_info.map_center).position
-            else:
-                chosen_target = bot.enemy_start_locations[0]
 
             for unit in army.idle:
-                unit.attack(chosen_target)
+                if chosen_target is not None:
+                    unit.attack(chosen_target)
+                unit.attack(bot.enemy_start_locations[0], queue=True)
 
             # Increase workers and army desired
             self.workers_desired += 10

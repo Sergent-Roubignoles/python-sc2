@@ -30,8 +30,7 @@ def emergency_response(bot: BotAI):
                 for enemy in threats:
                     if enemy.distance_to(unit) < closest_enemy.distance_to(unit):
                         closest_enemy = enemy
-                if not unit.distance_to(closest_enemy) < 30:
-                    unit.attack(closest_enemy)
+                unit.attack(closest_enemy)
         else:
             if unit.type_id == UnitTypeId.DRONE:
                 # Prevent drones form chasing enemies

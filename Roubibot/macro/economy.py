@@ -105,7 +105,7 @@ async def expand_army(bot: BotAI):
     if not saving_money and bot.structures(UnitTypeId.BANELINGNEST).ready.amount > 0:
         zerglings = bot.units(UnitTypeId.ZERGLING)
         # Keep 50/50 ling-bane ratio
-        if bot.can_afford(UnitTypeId.BANELING) and zerglings.amount > bot.units([UnitTypeId.BANELING, UnitTypeId.BANELINGCOCOON]).amount:
+        if bot.can_afford(UnitTypeId.BANELING) and zerglings.amount > bot.units({UnitTypeId.BANELING, UnitTypeId.BANELINGCOCOON}).amount:
             zerglings.closest_to(bot.start_location)(AbilityId.MORPHZERGLINGTOBANELING_BANELING)
 
     # Roaches
