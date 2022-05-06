@@ -82,6 +82,7 @@ class EarlyLingPush(Strategy):
         else:
             for unit in bot.units(UnitTypeId.ZERGLING).idle:
                 unit.move(bot.townhalls.closest_to(bot.game_info.map_center).position)
+                unit.move(bot.main_base_ramp.bottom_center)
 
     def prefered_follow_up_strategy(self) -> Strategy:
         return EndGame()
