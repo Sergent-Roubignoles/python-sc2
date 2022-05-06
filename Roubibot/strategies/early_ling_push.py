@@ -73,16 +73,15 @@ class EarlyLingPush(Strategy):
         bot.train(UnitTypeId.ZERGLING, int(bot.supply_left))
 
         if bot.units(UnitTypeId.ZERGLING).amount > 10:
-            target_bases = base_identifier.enemy_3rd
-            for ling in bot.units(UnitTypeId.ZERGLING).idle:
-                ling.attack(target_bases[0])
-                ling.attack(target_bases[1], queue=True)
+            if not self.aggression_detected:
+                target_bases = base_identifier.enemy_3rd
+                for ling in bot.units(UnitTypeId.ZERGLING).idle:
+                    ling.attack(target_bases[0])
+                    ling.attack(target_bases[1], queue=True)
             self.is_finished = True
         else:
             for unit in bot.units(UnitTypeId.ZERGLING).idle:
-                unit.move(
-                    bot.townhalls.closest_to(bot.game_info.map_center).position.towards(bot.game_info.map_center,
-                                                                                              10))
+                unit.move(bot.townhalls.closest_to(bot.game_info.map_center).position)
 
     def prefered_follow_up_strategy(self) -> Strategy:
         return EndGame()
