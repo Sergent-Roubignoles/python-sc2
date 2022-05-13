@@ -10,7 +10,14 @@ saving_money = False
 async def expand_eco(bot: BotAI, desired_workers: int, desired_gas: int):
     await bot.distribute_workers()
 
+    # Build more extractors
+    await get_gas(bot, desired_gas)
+
     global saving_money
+
+    if tech.saving_money:
+        saving_money = True
+        return
 
     # Build more hatcheries
     exploitable_mineral_fields = []
@@ -29,9 +36,6 @@ async def expand_eco(bot: BotAI, desired_workers: int, desired_gas: int):
                 else:
                     saving_money = True
                     return # Save for hatchery
-
-    # Build more extractors
-    await get_gas(bot, desired_gas)
 
     # Build minimum queens
     current_queens = bot.units(UnitTypeId.QUEEN).amount + bot.already_pending(UnitTypeId.QUEEN)
@@ -124,7 +128,7 @@ async def expand_army(bot: BotAI):
             bot.train(UnitTypeId.ROACH)
 
     # Zerglings
-    if not saving_money:
+    if not saving_money or bot.minerals > 400:
         bot.train(UnitTypeId.ZERGLING)
 
 async def execute_tech_coroutines(bot: BotAI, techs: List[Coroutine]):

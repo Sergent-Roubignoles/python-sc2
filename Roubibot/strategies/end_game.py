@@ -21,9 +21,9 @@ async def try_build_tech(bot: BotAI, building_id: UnitTypeId):
 
 class EndGame(Strategy):
 
-    workers_desired = 70
+    workers_desired = 90
     gas_desired = 1
-    army_to_push = 100
+    army_to_push = 80
 
     first_push_done = False
     current_attack_group: AttackGroup = None
@@ -70,14 +70,14 @@ class EndGame(Strategy):
                 desired_techs.append(economy.tech.tech_roaches(bot))
 
         if bot.supply_used > 75:
-            self.gas_desired = 3
+            self.gas_desired = 4
             desired_techs.append(economy.tech.tech_spire(bot))
             desired_techs.append(economy.tech.try_build_tech(bot, UnitTypeId.EVOLUTIONCHAMBER, 2))
             desired_techs.append(economy.tech.tech_melee(bot))
             desired_techs.append(economy.tech.tech_ground_armor(bot))
 
         if bot.supply_used > 100:
-            self.gas_desired = 5
+            self.gas_desired = 8
             desired_techs.append(economy.tech.tech_zerglings(bot, adrenal_glands=True))
             desired_techs.append(economy.tech.tech_broodlords(bot))
             if self.ultralisks_desired:
@@ -102,19 +102,14 @@ class EndGame(Strategy):
             target_bases = base_identifier.enemy_3rd
 
             for unit in army.idle:
-                closest_base = target_bases[0]
-                if unit.distance_to(target_bases[1]) < unit.distance_to(target_bases[0]):
-                    closest_base = target_bases[1]
-                    
-                unit.attack(closest_base.position)
+                # closest_base = target_bases[0]
+                # if unit.distance_to(target_bases[1]) < unit.distance_to(target_bases[0]):
+                #     closest_base = target_bases[1]
+
+                chosen_base = random.choice(target_bases)
+                unit.attack(chosen_base.position)
                 unit.attack(target_structures.closest_to(unit).position, queue=True)
                 unit.attack(bot.enemy_start_locations[0].position, queue=True)
-
-            # Increase workers and army desired
-            self.workers_desired += 10
-            if self.workers_desired > 90:
-                self.workers_desired = 90
-            self.army_to_push += 30
 
         # Move remaining units to staging point
         staging_point = bot.townhalls.ready.closest_to(bot.enemy_start_locations[0]).position.towards(
