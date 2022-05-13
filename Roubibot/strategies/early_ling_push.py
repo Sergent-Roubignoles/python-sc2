@@ -44,9 +44,9 @@ class EarlyLingPush(Strategy):
             saving_money_for_defense = False
             if bot.structures(UnitTypeId.SPAWNINGPOOL).ready.amount > 0:
 
-                # Get 2 spines on b2
+                # Get 1 spine on b2
                 if bot.townhalls.ready.amount > 1:
-                    if bot.structures(UnitTypeId.SPINECRAWLER).amount + bot.already_pending(UnitTypeId.SPINECRAWLER) < 2:
+                    if bot.structures(UnitTypeId.SPINECRAWLER).amount + bot.already_pending(UnitTypeId.SPINECRAWLER) < 1:
                         if bot.can_afford(UnitTypeId.SPINECRAWLER):
                             second_base = bot.townhalls.closest_to(bot.game_info.map_center)
                             await bot.build(UnitTypeId.SPINECRAWLER, second_base.position.towards(bot.game_info.map_center, 3))
@@ -72,7 +72,7 @@ class EarlyLingPush(Strategy):
         await economy.expand_eco(bot, 35, 1)
         bot.train(UnitTypeId.ZERGLING, int(bot.supply_left))
 
-        if bot.units(UnitTypeId.ZERGLING).amount > 10:
+        if bot.units(UnitTypeId.ZERGLING).amount > 6:
             if not self.aggression_detected:
                 target_bases = base_identifier.enemy_3rd
                 for ling in bot.units(UnitTypeId.ZERGLING).idle:

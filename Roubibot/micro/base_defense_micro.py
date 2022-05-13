@@ -5,6 +5,9 @@ from sc2.ids.unit_typeid import UnitTypeId
 def emergency_response(bot: BotAI):
     threats = []
     for enemy in bot.enemy_units:
+        if enemy.is_attacking:
+            threats.append(enemy)
+            continue
         for base in bot.townhalls:
             if base.health_percentage < 1:
                 if enemy.distance_to(base) < 20:

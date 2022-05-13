@@ -50,7 +50,7 @@ async def expand_eco(bot: BotAI, desired_workers: int, desired_gas: int):
         bot.train(UnitTypeId.DRONE)
 
     # Get 1 extra hatchery if floating minerals
-    if bot.minerals > 700 and not bot.already_pending(UnitTypeId.HATCHERY):
+    if bot.minerals > 400 and not bot.already_pending(UnitTypeId.HATCHERY):
         extra_mineral_fields = desired_mineral_fields - len(exploitable_mineral_fields)
         if not extra_mineral_fields >= 8:
             next_expansion = await bot.get_next_expansion()

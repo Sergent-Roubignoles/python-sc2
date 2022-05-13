@@ -129,6 +129,15 @@ async def tech_roaches(bot: BotAI, tunneling_claws = False):
         else:
             await try_build_tech(bot, UnitTypeId.SPAWNINGPOOL)
 
+async def tech_spire(bot: BotAI):
+    global saving_money
+    if bot.structures(UnitTypeId.SPIRE).amount + bot.structures(UnitTypeId.GREATERSPIRE).amount < 1:
+        if is_lair_tech_unlocked(bot):
+            await try_build_tech(bot, UnitTypeId.SPIRE)
+        else:
+            await tech_lair(bot)
+
+
 async def tech_broodlords(bot: BotAI):
     global saving_money
     if bot.structures(UnitTypeId.GREATERSPIRE).amount > 0:

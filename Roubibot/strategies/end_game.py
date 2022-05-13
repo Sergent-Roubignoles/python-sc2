@@ -22,7 +22,7 @@ async def try_build_tech(bot: BotAI, building_id: UnitTypeId):
 class EndGame(Strategy):
 
     workers_desired = 70
-    gas_desired = 6
+    gas_desired = 1
     army_to_push = 100
 
     first_push_done = False
@@ -60,18 +60,28 @@ class EndGame(Strategy):
 
         # Spend money
         economy.reset_saving()
-        desired_techs = [economy.tech.tech_zerglings(bot, adrenal_glands=True),
-                         economy.tech.tech_broodlords(bot)]
-        if self.banelings_desired:
-            desired_techs.append(economy.tech.tech_banelings(bot))
-        if self.roaches_desired:
-            desired_techs.append(economy.tech.tech_roaches(bot))
-        if self.ultralisks_desired:
-            desired_techs.append(economy.tech.tech_ultralisks(bot))
-        if bot.supply_used > 80:
+        desired_techs = [economy.tech.tech_zerglings(bot)]
+
+        if bot.supply_used > 50:
+            self.gas_desired = 2
+            if self.banelings_desired:
+                desired_techs.append(economy.tech.tech_banelings(bot))
+            if self.roaches_desired:
+                desired_techs.append(economy.tech.tech_roaches(bot))
+
+        if bot.supply_used > 75:
+            self.gas_desired = 3
+            desired_techs.append(economy.tech.tech_spire(bot))
             desired_techs.append(economy.tech.try_build_tech(bot, UnitTypeId.EVOLUTIONCHAMBER, 2))
             desired_techs.append(economy.tech.tech_melee(bot))
             desired_techs.append(economy.tech.tech_ground_armor(bot))
+
+        if bot.supply_used > 100:
+            self.gas_desired = 5
+            desired_techs.append(economy.tech.tech_zerglings(bot, adrenal_glands=True))
+            desired_techs.append(economy.tech.tech_broodlords(bot))
+            if self.ultralisks_desired:
+                desired_techs.append(economy.tech.tech_ultralisks(bot))
 
         await economy.execute_tech_coroutines(bot, desired_techs)
 
@@ -104,15 +114,11 @@ class EndGame(Strategy):
             self.workers_desired += 10
             if self.workers_desired > 90:
                 self.workers_desired = 90
-            self.gas_desired += 1
-            if self.gas_desired > 8:
-                self.gas_desired = 8
             self.army_to_push += 30
 
         # Move remaining units to staging point
-        staging_point = bot.townhalls.closest_to(bot.enemy_start_locations[0]).position.towards(
-            bot.game_info.map_center,
-            10)
+        staging_point = bot.townhalls.ready.closest_to(bot.enemy_start_locations[0]).position.towards(
+            bot.game_info.map_center, 2)
         for unit in army.idle:
             if unit.distance_to(staging_point) > 10:
                 unit.move(staging_point)

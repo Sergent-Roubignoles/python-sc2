@@ -27,6 +27,7 @@ class CompetitiveBot(BotAI):
 
             if self.current_strategy.is_finished:
                 self.current_strategy = self.current_strategy.prefered_follow_up_strategy()
+                await self.chat_send("New strategy: " + self.current_strategy.__class__.__name__)
             await self.current_strategy.on_step(self)
 
             base_defense_micro.emergency_response(self)

@@ -2,14 +2,21 @@ import random
 
 import numpy as np
 
+from helpers import color_map
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 
+all_map_points = None
+
 
 def inject_and_creep_spread(bot: BotAI, iteration: int):
+    global all_map_points
+    if all_map_points is None:
+        all_map_points = get_whole_map(bot)
+
     unreserved_queens = bot.units(UnitTypeId.QUEEN)
 
     # Keep 1 immobile queen for each hatch
@@ -80,4 +87,8 @@ def get_whole_map(bot: BotAI):
         Point2((a, b)) for (b, a), value in np.ndenumerate(bot.game_info.pathing_grid.data_numpy)
         if value == 1 and map_area.x <= a < map_area.x + map_area.width and map_area.y <= b < map_area.y + map_area.height
     ]
+    # bool_map = [[0 for y in range(map_area.height)] for x in range(map_area.width)]
+    # for point in points:
+    #     bool_map[point.x - map_area.x][point.y - map_area.y] = 1
+    # color_map.color_map(bool_map)
     return points
