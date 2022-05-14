@@ -2,6 +2,7 @@ import random
 
 from helpers import strategy_analyser, base_identifier
 from macro import economy
+from micro import scouting_micro
 from micro.army_group import AttackGroup
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
@@ -110,6 +111,10 @@ class EndGame(Strategy):
                 unit.attack(chosen_base.position)
                 unit.attack(target_structures.closest_to(unit).position, queue=True)
                 unit.attack(bot.enemy_start_locations[0].position, queue=True)
+
+        # Get map control
+        if bot.supply_used > 40:
+            scouting_micro.secure_watchtowers(bot)
 
         # Move remaining units to staging point
         staging_point = bot.townhalls.ready.closest_to(bot.enemy_start_locations[0]).position.towards(
