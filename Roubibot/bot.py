@@ -4,6 +4,7 @@ from typing import List
 from helpers import strategy_analyser, base_identifier
 from micro import queen_micro, base_defense_micro
 from sc2.bot_ai import BotAI
+from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from strategies.open_pool_first import OpenPoolFirst
@@ -33,6 +34,7 @@ class CompetitiveBot(BotAI):
             base_defense_micro.emergency_response(self)
             queen_micro.inject_and_creep_spread(self, iteration)
             move_scout(self)
+            build_emergency_workers(self)
 
     def on_end(self, result):
         print("Game ended.")
@@ -56,3 +58,19 @@ def move_scout(bot: BotAI):
         idle_lings = bot.units(UnitTypeId.ZERGLING).idle
         if idle_lings.amount > 0:
             scout_id = idle_lings.first.tag
+
+def build_emergency_workers(bot: BotAI):
+    if bot.supply_workers < 4 and bot.can_afford(UnitTypeId.DRONE):
+        safe_larva_found = False
+        for larva in bot.larva:
+            larva_is_safe = True
+            for enemy in bot.enemy_units:
+                if larva.distance_to(enemy) < 20:
+                    larva_is_safe = False
+                    break
+            if larva_is_safe:
+                safe_larva_found = True
+                larva(AbilityId.LARVATRAIN_DRONE)
+                break
+        if not safe_larva_found:
+            bot.train(UnitTypeId.DRONE)

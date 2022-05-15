@@ -1,4 +1,5 @@
 from helpers import strategy_analyser, base_identifier
+from helpers.unit_selector import amount_of_type
 from macro import economy
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
@@ -20,7 +21,7 @@ class OpenPoolFirst(Strategy):
             bot.train(UnitTypeId.OVERLORD)
 
         # Get 17 drones
-        if bot.supply_workers < 17:
+        if amount_of_type(bot, UnitTypeId.ZERGLING) < 17:
             if not bot.can_afford(UnitTypeId.DRONE):
                 return
             bot.train(UnitTypeId.DRONE)
@@ -62,9 +63,15 @@ class OpenPoolFirst(Strategy):
             if idle_townhalls.amount > 0:
                 idle_townhalls.first.train(UnitTypeId.QUEEN)
 
-        if bot.supply_used >= 21 and bot.all_own_units(UnitTypeId.ZERGLING).amount + bot.already_pending(UnitTypeId.ZERGLING) == 0:
-            bot.train(UnitTypeId.ZERGLING)
-            self.is_finished = True
+        # Then drone to 21
+        if bot.supply_used < 21:
+            if not bot.can_afford(UnitTypeId.DRONE):
+                return
+            bot.train(UnitTypeId.DRONE)
+        else:
+            if amount_of_type(bot, UnitTypeId.ZERGLING) == 0:
+                bot.train(UnitTypeId.ZERGLING)
+                self.is_finished = True
 
     def prefered_follow_up_strategy(self) -> Strategy:
         return EarlyLingPush()
