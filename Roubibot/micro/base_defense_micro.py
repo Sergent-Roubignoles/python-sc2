@@ -22,12 +22,12 @@ def emergency_response(bot: BotAI):
             if unit.type_id == UnitTypeId.DRONE:
                 for enemy in threats:
                     if unit.distance_to(enemy) < 5:
-                        unit.attack(enemy)
+                        unit.attack(enemy.position)
                         break
             elif unit.type_id == UnitTypeId.QUEEN:
                 for enemy in threats:
                     if unit.distance_to(enemy) < 20:
-                        unit.attack(enemy)
+                        unit.attack(enemy.position)
                         break
             else:
                 closest_enemy = threats[0]
